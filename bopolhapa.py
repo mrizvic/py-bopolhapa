@@ -14,11 +14,11 @@ class Bopolhapa(object):
 		return None
 
 	def query(self,search,sort=1):
-		#buffer=self.__Request(search,sort)
+		buffer=self.__Request(search,sort)
 
-		file='bolha2'
-		with open(file) as f:
-			buffer=f.read()
+		# file='bopolhapa'
+		# with open(file) as f:
+		# 	buffer=f.read()
 
 		buffer=buffer.translate(None, '\t\n')
 		d=pq(buffer)
