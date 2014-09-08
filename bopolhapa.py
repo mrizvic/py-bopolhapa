@@ -3,7 +3,6 @@
 import urllib
 import urllib2
 import json
-import sys
 
 from pyquery import PyQuery as pq
 from lxml import etree
@@ -11,48 +10,64 @@ from collections import OrderedDict
 
 
 class Bopolhapa(object):
-	def __init__(self,search,sort=1):
-		self.search=search
-		self.sort=sort
-		self.__Request(search,sort)
+	def __init__(self):
+		return None
 
-		buffer=self.__Request(search,sort)
+	def query(self,search,sort=1):
+		#buffer=self.__Request(search,sort)
 
+		file='bolha2'
+		with open(file) as f:
+			buffer=f.read()
+
+		buffer=buffer.translate(None, '\t\n')
 		d=pq(buffer)
+
 		ads=len(d('div.ad'))
 
-		for j in xrange(ads):
-			title=d('div.ad').find('div.coloumn.content').eq(j).find('a').text()
-			href=d('div.ad').find('div.coloumn.content').eq(j).find('a').attr('href')
-			content=d('div.ad').find('div.coloumn.content').eq(j).text()
-			content=content.lstrip(title)
-			img=d('div.ad').find('div.coloumn.image').eq(j).find('img').attr('data-original')
-			price=d('div.ad').find('div.coloumn.prices').eq(j).find('div').text()
+		self.items=[]
+
+		for i in xrange(ads):
+			title=d('div.ad').find('div.coloumn.content').eq(i).find('a').text()
+			href=d('div.ad').find('div.coloumn.content').eq(i).find('a').attr('href')
+			content=d('div.ad').find('div.coloumn.content').eq(i).text()
+			content=content[len(title)+1:]
+			img=d('div.ad').find('div.coloumn.image').eq(i).find('img').attr('data-original')
+			price=d('div.ad').find('div.coloumn.prices').eq(i).find('div').text()
 
 			values=OrderedDict([
-								('id', j),
+								('item', i),
 								('title', title),
 								('content',content),
 								('href',href),
 								('img',img),
 								('price',price)
 								])
+			self.items.append(values)
+		return self.items
 
-			sys.stdout.write(json.dumps(values, sort_keys=False))
+	def jsonize(self,items):
+		jsonitems={'results': items}
+		return json.dumps(jsonitems)
 
 
 	def __Request(self,search,sort=1,timeout=5):
 		if search=="":
 			raise ValueError('search string seems empty')
-		if sort <> 1:
-			raise ValueError('TODO: implement input validation')
+		if sort < 1 or sort > 4:
+			#1 - zadnji vpisani oglasi naprej
+			#2 - oglasi pred potekom naprej
+			#3 - oglasi z nizjo ceno naprej
+			#4 - oglasi z visjo ceno naprej
+			raise ValueError('sort should be in range(1,4)')
 
 		url='http://www.bopolhapa.com/iskanje'
 		data={'q':search,'sort':sort}
 		data=urllib.urlencode(data)
 		
 		try:
-			request=urllib2.Request(url,data)
+			headers = { 'User-Agent' : 'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.1; WOW64; Trident/6.0)' }
+			request=urllib2.Request(url,data,headers)
 			response=urllib2.urlopen(request,timeout=timeout)
 			buffer=response.read()
 			return buffer
@@ -60,11 +75,12 @@ class Bopolhapa(object):
 			raise e
 
 
-
 		
 def main():
-	b=Bopolhapa(search='commodore 64',sort=1)
-
+	b=Bopolhapa()
+	result=b.query(search='raspberry pi')
+	json=b.jsonize(result)
+	print json
 
 if __name__ == '__main__':
 	main()
